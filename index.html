@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gift Roulette & Market</title>
+    <!-- Подключаем скрипт Телеграма, чтобы бот понимал это приложение -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <style>
+        /* Стили для красивого темного интерфейса */
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: #1a1a24;
+            color: #ffffff;
+            margin: 0;
+            padding: 15px;
+            text-align: center;
+            -webkit-user-select: none;
+        }
+
+        h2 {
+            color: #0088cc;
+            margin-bottom: 5px;
+        }
+
+        .balance {
+            font-size: 18px;
+            background: #252538;
+            padding: 8px 15px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 20px;
+            border: 1px solid #3b3b54;
+        }
+
+        /* Стиль для рулетки в стиле Gift Battle (горизонтальная лента) */
+        .roulette-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            height: 100px;
+            background: #252538;
+            margin: 0 auto 20px auto;
+            border-radius: 12px;
+            border: 2px solid #0088cc;
+            overflow: hidden; /* Прячем то, что не влезает */
+        }
+
+        /* Красная линия по центру — указатель выигрыша */
+        .pointer {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: #ff3333;
+            z-index: 10;
+            box-shadow: 0 0 10px #ff3333;
+        }
+
+        .tape {
+            display: flex;
+            align-items: center;
+            position: absolute;
+            left: 0;
+            height: 100%;
+            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); /* Плавная остановка */
+        }
+
+        .gift-card {
+            width: 80px;
+            height: 80px;
+            background: #3b3b54;
+            margin: 0 5px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+
+        /* Редкости подарков */
+        .common { border: 2px solid #8c8c8c; }
+        .rare { border: 2px solid #0055ff; color: #0088ff; }
+        .legendary { border: 2px solid #ffaa00; color: #ffaa00; box-shadow: inset 0 0 10px rgba(255,170,0,0.3); }
+
+        .btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.4);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Раздел Рынка */
+        .market-section {
+            margin-top: 30px;
+            border-top: 1px solid #3b3b54;
+            padding-top: 20px;
+        }
+
+        .market-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .market-item {
+            background: #252538;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #3b3b54;
+        }
+
+        .price {
+            color: #00ff66;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>GIFT ROULETTE</h2>
+    <div class="balance">Баланс: <span id="balance-val">1000</span> 🪙</div>
+
+    <!-- РУЛЕТКА -->
+    <div class="roulette-container">
+        <div class="pointer"></div>
+        <div class="tape" id="roulette-tape">
+            <!-- Сюда JavaScript будет подставлять предметы -->
+        </div>
+    </div>
+
+    <button class="btn" onclick="spinRoulette()">Крутить (100 🪙)</button>
+
+    <!-- МАРКЕТПЛЕЙС -->
+    <div class="market-section">
+        <h2>P2P РЫНОК</h2>
+        <div class="market-grid">
+            <div class="market-item">
+                <div style="font-size: 24px;">🎁</div>
+                <div>Common NFT</div>
+                <div class="price">50 🪙</div>
+                <button class="btn" style="padding: 5px 10px; font-size: 12px;">Купить</button>
+            </div>
+            <div class="market-item">
+                <div style="font-size: 24px;">💎</div>
+                <div style="color: #ffaa00;">Legendary NFT</div>
+                <div class="price">750 🪙</div>
+                <button class="btn" style="padding: 5px 10px; font-size: 12px;">Купить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Сообщаем Телеграму, что приложение готово к работе
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand(); // Разворачиваем на весь экран телефона
+
+        // Базовый массив предметов для ленты рулетки
+        const items = [
+            { name: 'Common', icon: '🎁', class: 'common' },
+            { name: 'Rare', icon: '⚡', class: 'rare' },
+            { name: 'Legendary', icon: '💎', class: 'legendary' }
+        ];
+
+        const tape = document.getElementById('roulette-tape');
+
+        // Функция генерации предметов в ленте перед прокруткой
+        function generateTape() {
+            tape.innerHTML = '';
+            // Создаем длинную ленту из 40 случайных предметов
+            for (let i = 0; i < 40; i++) {
+                let randomItem = items[Math.floor(Math.random() * items.length)];
+                if (i === 35) { 
+                    // Пусть 35-й предмет всегда будет "выигрышным" для теста визуализации
+                    randomItem = items[1]; 
+                }
+                const card = document.createElement('div');
+                card.className = `gift-card ${randomItem.class}`;
+                card.innerHTML = `<span style="font-size:24px;">${randomItem.icon}</span>${randomItem.name}`;
+                tape.appendChild(card);
+            }
+        }
+
+        // Запускаем генерацию при старте страницы
+        generateTape();
+
+        function spinRoulette() {
+            generateTape(); // Сбрасываем ленту
+            tape.style.transition = 'none';
+            tape.style.transform = 'translateX(0px)';
+            
+            // Небольшая задержка, чтобы анимация сработала заново
+            setTimeout(() => {
+                tape.style.transition = 'transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)';
+                // Сдвигаем ленту так, чтобы 35-й элемент остановился ровно под стрелкой
+                // Ширина карты 80px + 10px отступы = 90px. 
+                // Высчитываем смещение для красивого эффекта:
+                tape.style.transform = 'translateX(-2950px)';
+            }, 50);
+        }
+    </script>
+</body>
+</html>
