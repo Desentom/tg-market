@@ -2,278 +2,345 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fast Gift</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fast Gift Pro</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+        /* --- БАЗОВЫЕ СТИЛИ (Тёмная тема в стиле ТГ) --- */
+        :root {
+            --bg-color: #12131a;
+            --container-bg: #161720;
+            --border-color: #232736;
+            --text-main: #ffffff;
+            --text-muted: #9299a9;
+            --accent: #248bf2;
+            --accent-hover: #1a73e8;
+            --star-color: #ffca28;
+            --rarity-common: #b0bec5;
+            --rarity-rare: #64b5f6;
+            --rarity-legendary: #ffd54f;
         }
 
-        body {
-            background-color: #12131a;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; padding-bottom: 30px; }
 
-        /* Шапка приложения */
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            margin-top: 10px;
-        }
+        /* --- ХЕДЕР И БАЛАНС --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--container-bg); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 20px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+        .balance-pill { background: rgba(36, 139, 242, 0.1); border: 1px solid rgba(36, 139, 242, 0.3); border-radius: 20px; padding: 6px 15px; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; }
+        .star-icon { color: var(--star-color); }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 800;
-            color: #248bf2;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 12px;
-            text-shadow: 0 0 10px rgba(36, 139, 242, 0.3);
-        }
+        /* --- КОНТЕЙНЕР ДЛЯ КЕЙСОВ --- */
+        .main-content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .section-title { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 5px; }
 
-        /* Виджет баланса */
-        .balance-container {
-            background: linear-gradient(135deg, #1c1e27, #161720);
-            border: 1px solid #232736;
-            border-radius: 14px;
-            padding: 10px 24px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
+        /* --- СТИЛЬ КАРТОЧКИ КЕЙСА --- */
+        .case-card { background-color: var(--container-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 15px; transition: transform 0.2s, border-color 0.2s; position: relative; overflow: hidden; }
+        .case-card:active { transform: scale(0.98); }
+        .case-card.hovered { border-color: var(--accent); }
 
-        .balance-text {
-            font-size: 16px;
-            color: #9299a9;
-            font-weight: 500;
-        }
+        .case-icon { font-size: 60px; line-height: 1; margin-bottom: 10px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.1)); }
+        .case-name { font-size: 18px; font-weight: 700; }
+        .case-desc { font-size: 13px; color: var(--text-muted); }
+        
+        .btn-open { width: 100%; border: none; border-radius: 12px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        
+        /* Кнопка Платного кейса */
+        .case-paid .btn-open { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; box-shadow: 0 4px 15px rgba(36, 139, 242, 0.4); }
+        /* Кнопка Бесплатного кейса */
+        .case-free .btn-open { background-color: #212330; border: 1px solid var(--rarity-legendary); color: var(--rarity-legendary); }
+        .case-free .btn-open:disabled { border-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; box-shadow: none; }
 
-        .balance-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: #ffffff;
-        }
+        /* Таймер бесплатного кейса */
+        .timer { font-size: 14px; font-weight: 600; color: var(--text-muted); margin-top: -5px; }
 
-        .coin-icon {
-            color: #ffca28;
-            font-size: 16px;
-        }
+        /* --- ОКНО АНИМАЦИИ ОТКРЫТИЯ (РУЛЕТКА) --- */
+        .roulette-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 200; display: none; justify-content: center; align-items: center; padding: 20px; }
+        .roulette-window { width: 100%; max-width: 360px; background-color: #0f1015; border: 2px solid var(--accent); border-radius: 20px; padding: 10px; position: relative; overflow: hidden; box-shadow: 0 0 30px rgba(36, 139, 242, 0.3); }
+        
+        /* Красная линия-указатель */
+        .roulette-window::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; background-color: #ff334b; box-shadow: 0 0 10px #ff334b; z-index: 10; transform: translateX(-50%); }
 
-        /* Рулетка */
-        .roulette-section {
-            width: 100%;
-            max-width: 400px;
-            background-color: #161720;
-            border: 1px solid #222533;
-            border-radius: 20px;
-            padding: 20px;
-            position: relative;
-            margin-bottom: 30px;
-        }
+        .roulette-carousel { display: flex; gap: 10px; transform: translateX(0); /* Будем анимировать это свойство */ }
+        
+        /* Стиль предмета в рулетке */
+        .roulette-item { min-width: 90px; height: 90px; background-color: var(--container-bg); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; }
+        .roulette-item .item-icon { font-size: 36px; }
+        .roulette-item .item-name { font-size: 11px; font-weight: 600; padding: 0 5px; }
 
-        .roulette-carousel {
-            display: flex;
-            gap: 10px;
-            overflow: hidden;
-            background-color: #0f1015;
-            border: 2px solid #248bf2;
-            border-radius: 12px;
-            padding: 12px;
-            position: relative;
-            margin-bottom: 20px;
-        }
+        /* Цвета редкости для предметов */
+        .item-common { border-color: var(--rarity-common); color: var(--rarity-common); }
+        .item-rare { border-color: var(--accent); color: var(--rarity-rare); }
+        .item-legendary { border-color: var(--rarity-legendary); color: var(--rarity-legendary); }
 
-        /* Линия указателя по центру */
-        .roulette-carousel::before {
-            content: '';
-            position: absolute;
-            left: 50%;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background-color: #ff334b;
-            box-shadow: 0 0 8px #ff334b;
-            z-index: 10;
-            transform: translateX(-50%);
-        }
+        /* Окно результата выигрыша */
+        .result-display { text-align: center; display: none; margin-top: 20px; animation: fadeIn 0.5s; }
+        .result-title { font-size: 16px; color: var(--text-muted); margin-bottom: 10px; }
+        .result-item-icon { font-size: 80px; margin-bottom: 15px; animation: popIn 0.5s ease-out; }
+        .result-item-name { font-size: 22px; font-weight: 800; margin-bottom: 20px; }
+        
+        .btn-claim { background: linear-gradient(135deg, #4caf50, #2e7d32); color: white; border: none; border-radius: 12px; padding: 14px 30px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
 
-        .item {
-            min-width: 80px;
-            height: 80px;
-            background-color: #1c1e27;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            border: 1px solid #2d3245;
-        }
+        /* Keyframes для анимаций */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        .item.common { border-color: #546e7a; color: #b0bec5; }
-        .item.rare { border-color: #1e88e5; color: #64b5f6; }
-        .item.legendary { border-color: #ffb300; color: #ffd54f; }
-
-        .item-icon {
-            font-size: 20px;
-        }
-
-        /* Кнопка крутить */
-        .btn-spin {
-            width: 100%;
-            background: linear-gradient(135deg, #248bf2, #1a73e8);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(36, 139, 242, 0.4);
-            transition: transform 0.1s;
-        }
-
-        .btn-spin:active {
-            transform: scale(0.98);
-        }
-
-        /* P2P Рынок */
-        .p2p-section {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .p2p-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #248bf2;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .p2p-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .market-card {
-            background-color: #161720;
-            border: 1px solid #222533;
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 8px;
-        }
-
-        .card-title {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .card-price {
-            font-size: 14px;
-            font-weight: 700;
-            color: #ffca28;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .btn-buy {
-            width: 100%;
-            background-color: #212330;
-            border: 1px solid #248bf2;
-            color: #248bf2;
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .btn-buy:active {
-            background-color: rgba(36, 139, 242, 0.1);
-        }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="logo">Gift Roulette</div>
-        <div class="balance-container">
-            <span class="balance-text">Баланс:</span>
-            <span class="balance-value">0</span>
-            <span class="coin-icon">🪙</span>
+        <div class="logo">Fast Gift PRO</div>
+        <div class="balance-pill">
+            <span class="star-icon">⭐️</span>
+            <span id="balance-value">0</span>
         </div>
     </div>
 
-    <div class="roulette-section">
-        <div class="roulette-carousel">
-            <div class="item common">
-                <span class="item-icon">🎁</span>
-                <span>Common</span>
-            </div>
-            <div class="item legendary">
-                <span class="item-icon">💎</span>
-                <span>Legendary</span>
-            </div>
-            <div class="item rare">
-                <span class="item-icon">⚡</span>
-                <span>Rare</span>
-            </div>
-            <div class="item legendary">
-                <span class="item-icon">💎</span>
-                <span>Legendary</span>
+    <div class="main-content">
+        
+        <div class="case-section case-free">
+            <h2 class="section-title">Ежедневный бонус</h2>
+            <div class="case-card" id="free-case-card">
+                <div class="case-icon">🎁</div>
+                <div class="case-name">Бесплатный Кейс</div>
+                <div class="case-desc">Доступен раз в 24 часа. Содержит от 10 до 500 ⭐️</div>
+                <button class="btn-open" id="btn-open-free" onclick="openFreeCase()">
+                    Открыть Бесплатно
+                </button>
+                <div class="timer" id="free-case-timer" style="display: none;">Доступен через: <span id="timer-time">--:--:--</span></div>
             </div>
         </div>
-        <button class="btn-spin" onclick="spinClick()">Крутить (100 🪙)</button>
+
+        <div class="case-section case-paid">
+            <h2 class="section-title">Магазин кейсов</h2>
+            
+            <div class="case-card">
+                <div class="case-icon">💎</div>
+                <div class="case-name">Кейс "Новичок"</div>
+                <div class="case-desc">Шанс выбить Legendary предметы!</div>
+                <button class="btn-open" onclick="openPaidCase(100)">
+                    Открыть за 100 <span class="star-icon">⭐️</span>
+                </button>
+            </div>
+
+            <div class="case-card">
+                <div class="case-icon">🔥</div>
+                <div class="case-name">Кейс "Хайп"</div>
+                <div class="case-desc">Только Rare и Legendary дроп.</div>
+                <button class="btn-open" onclick="openPaidCase(500)">
+                    Открыть за 500 <span class="star-icon">⭐️</span>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="p2p-section">
-        <div class="p2p-title">P2P Рынок</div>
-        <div class="p2p-grid">
-            <div class="market-card">
-                <span style="font-size: 24px;">🎁</span>
-                <span class="card-title" style="color: #b0bec5;">Common NFT</span>
-                <span class="card-price">50 🪙</span>
-                <button class="btn-buy" onclick="buyClick('Common')">Купить</button>
+    <div class="roulette-overlay" id="roulette-overlay">
+        <div id="roulette-stage">
+            <div class="roulette-window">
+                <div class="roulette-carousel" id="roulette-carousel">
+                    </div>
             </div>
-            <div class="market-card">
-                <span style="font-size: 24px;">💎</span>
-                <span class="card-title" style="color: #ffd54f;">Legendary NFT</span>
-                <span class="card-price">750 🪙</span>
-                <button class="btn-buy" onclick="buyClick('Legendary')">Купить</button>
-            </div>
+        </div>
+
+        <div class="result-display" id="result-display">
+            <div class="result-title">Ты выиграл:</div>
+            <div class="result-item-icon" id="result-icon">🎁</div>
+            <div class="result-item-name" id="result-name">Item Name</div>
+            <button class="btn-claim" onclick="closeRoulette()">Забрать дроп</button>
         </div>
     </div>
 
     <script>
-        function spinClick() {
-            alert("Недостаточно монет для прокрута рулетки!");
+        // --- ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP ---
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Расширяем на весь экран
+
+        // --- МОК-ДАННЫЕ (Для теста, пока нет бэкенда) ---
+        // Храним данные в LocalStorage телефона, чтобы они не пропадали
+        let userBalance = parseInt(localStorage.getItem('userBalance')) || 1000; // Даем 1000 старт
+        let lastFreeClaim = localStorage.getItem('lastFreeClaim') || 0; // Время последнего клейма в мс
+
+        // Обновляем баланс на экране при запуске
+        updateBalanceDisplay();
+        checkFreeCaseAvailability();
+
+        // Функции обновления интерфейса
+        function updateBalanceDisplay() {
+            document.getElementById('balance-value').innerText = userBalance;
+            localStorage.setItem('userBalance', userBalance);
         }
 
-        function buyClick(item) {
-            alert("Недостаточно монет для покупки " + item + " NFT!");
+        // --- ЛОГИКА БЕСПЛАТНОГО КЕЙСА (РАЗ В 24 ЧАСА) ---
+        const FREE_CASE_COOLDOWN = 24 * 60 * 60 * 1000; // 24 часа в миллисекундах
+        let timerInterval;
+
+        function checkFreeCaseAvailability() {
+            const now = new Date().getTime();
+            const timePassed = now - lastFreeClaim;
+            const btnFree = document.getElementById('btn-open-free');
+            const timerDiv = document.getElementById('free-case-timer');
+
+            if (timePassed < FREE_CASE_COOLDOWN) {
+                // Кейс недоступен, запускаем таймер
+                btnFree.disabled = true;
+                btnFree.innerText = "Уже открыт";
+                timerDiv.style.display = 'block';
+                startTimer(FREE_CASE_COOLDOWN - timePassed);
+            } else {
+                // Кейс доступен
+                btnFree.disabled = false;
+                btnFree.innerText = "Открыть Бесплатно";
+                timerDiv.style.display = 'none';
+                if (timerInterval) clearInterval(timerInterval);
+            }
         }
+
+        function startTimer(duration) {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            const timerDisplay = document.getElementById('timer-time');
+            let timer = duration / 1000;
+
+            timerInterval = setInterval(() => {
+                let hours = parseInt(timer / 3600, 10);
+                let minutes = parseInt((timer % 3600) / 60, 10);
+                let seconds = parseInt(timer % 60, 10);
+
+                hours = hours < 10 ? "0" + hours : hours;
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                timerDisplay.textContent = hours + ":" + minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    checkFreeCaseAvailability(); // Перепроверяем, когда время вышло
+                }
+            }, 1000);
+        }
+
+        function openFreeCase() {
+            // Дроп для бесплатного кейса (только звезды)
+            const drops = [
+                { name: "10 ⭐️", icon: "💰", rarity: "common", value: 10 },
+                { name: "50 ⭐️", icon: "💰", rarity: "rare", value: 50 },
+                { name: "100 ⭐️", icon: "💰", rarity: "rare", value: 100 },
+                { name: "500 ⭐️", icon: "💎", rarity: "legendary", value: 500 }
+            ];
+            
+            // Фиксируем время открытия
+            lastFreeClaim = new Date().getTime();
+            localStorage.setItem('lastFreeClaim', lastFreeClaim);
+            
+            // Запускаем анимацию
+            startRouletteAnimation(drops);
+        }
+
+
+        // --- ЛОГИКА ПЛАТНОГО КЕЙСА ---
+        function openPaidCase(cost) {
+            if (userBalance < cost) {
+                tg.showAlert("❌ Недостаточно Звёзд для открытия!");
+                return;
+            }
+
+            // Списываем баланс
+            userBalance -= cost;
+            updateBalanceDisplay();
+
+            // Дроп для платного кейса (тут могут быть и предметы, и звезды)
+            const drops = [
+                { name: "Common Item", icon: "🎁", rarity: "common", value: 0 },
+                { name: "Common Item", icon: "📦", rarity: "common", value: 0 },
+                { name: "50 ⭐️", icon: "💰", rarity: "rare", value: 50 },
+                { name: "Rare Pistol", icon: "🔫", rarity: "rare", value: 0 },
+                { name: "Rare Knife", icon: "🔪", rarity: "rare", value: 0 },
+                { name: "1000 ⭐️", icon: "💎", rarity: "legendary", value: 1000 },
+                { name: "Legendary Car", icon: "🏎", rarity: "legendary", value: 0 }
+            ];
+
+            // Запускаем анимацию
+            startRouletteAnimation(drops);
+        }
+
+        // --- ПОЛНЫЙ КОД АНИМАЦИИ РУЛЕТКИ ---
+        function startRouletteAnimation(possibleDrops) {
+            const overlay = document.getElementById('roulette-overlay');
+            const carousel = document.getElementById('roulette-carousel');
+            const stage = document.getElementById('roulette-stage');
+            const resultDisplay = document.getElementById('result-display');
+            
+            // Показываем оверлей, прячем результат
+            overlay.style.display = 'flex';
+            stage.style.display = 'block';
+            resultDisplay.style.display = 'none';
+
+            // Генерируем ленту предметов (нужно много, чтобы крутилось долго)
+            carousel.innerHTML = '';
+            carousel.style.transition = 'none'; // Сбрасываем старую анимацию
+            carousel.style.transform = 'translateX(0)';
+            
+            const numItems = 60; // Количество предметов в ленте
+            const winningIndex = numItems - 5; // Предмет, на котором остановимся
+            let winningItem;
+
+            for (let i = 0; i < numItems; i++) {
+                // Случайный предмет из списка возможных дропов
+                const randomDrop = possibleDrops[Math.floor(Math.random() * possibleDrops.length)];
+                
+                // Если это выигрышный индекс, запоминаем предмет
+                if (i === winningIndex) winningItem = randomDrop;
+
+                const itemEl = document.createElement('div');
+                itemEl.className = `roulette-item item-${randomDrop.rarity}`;
+                itemEl.innerHTML = `
+                    <div class="item-icon">${randomDrop.icon}</div>
+                    <div class="item-name">${randomDrop.name}</div>
+                `;
+                carousel.appendChild(itemEl);
+            }
+
+            // Рассчитываем смещение для остановки ровно по центру красной линии
+            // Ширина предмета (90) + gap (10) = 100px на один шаг.
+            // Нам нужно сместиться так, чтобы winningItem был в центре окна (50% ширины)
+            const itemWidth = 100; // Шаг карусели
+            const windowWidth = document.querySelector('.roulette-window').offsetWidth;
+            const targetX = -(winningIndex * itemWidth) + (windowWidth / 2) - (itemWidth / 2);
+
+            // Запускаем анимацию через небольшой тайм-аут
+            setTimeout(() => {
+                // Устанавливаем время прокрутки (например, 7 секунд) и тип сглаживания ease-out
+                carousel.style.transition = 'transform 7s cubic-bezier(0.15, 0.85, 0.35, 1)';
+                carousel.style.transform = `translateX(${targetX}px)`;
+            }, 50);
+
+            // Обработка окончания анимации
+            setTimeout(() => {
+                showResult(winningItem);
+            }, 7100); // Чуть дольше, чем длится анимация CSS
+        }
+
+        function showResult(item) {
+            document.getElementById('roulette-stage').style.display = 'none';
+            
+            const resultDisplay = document.getElementById('result-display');
+            document.getElementById('result-icon').innerText = item.icon;
+            document.getElementById('result-name').innerText = item.name;
+            resultDisplay.style.display = 'block';
+
+            // Если выиграли звезды, зачисляем их
+            if (item.value > 0) {
+                userBalance += item.value;
+                updateBalanceDisplay();
+            }
+        }
+
+        function closeRoulette() {
+            document.getElementById('roulette-overlay').style.display = 'none';
+            // После закрытия рулетки проверяем таймер бесплатного кейса
+            checkFreeCaseAvailability();
+        }
+
     </script>
 </body>
 </html>
