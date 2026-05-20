@@ -3,218 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gift Roulette & Market</title>
-    <!-- Подключаем скрипт Телеграма, чтобы бот понимал это приложение -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
+    <title>Fast Gift</title>
     <style>
-        /* Стили для красивого темного интерфейса */
-        body {
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background-color: #1a1a24;
-            color: #ffffff;
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 15px;
-            text-align: center;
-            -webkit-user-select: none;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        h2 {
-            color: #0088cc;
-            margin-bottom: 5px;
-        }
-
-        .balance {
-            font-size: 18px;
-            background: #252538;
-            padding: 8px 15px;
-            border-radius: 10px;
-            display: inline-block;
-            margin-bottom: 20px;
-            border: 1px solid #3b3b54;
-        }
-
-        /* Стиль для рулетки в стиле Gift Battle (горизонтальная лента) */
-        .roulette-container {
-            position: relative;
-            width: 100%;
-            max-width: 350px;
-            height: 100px;
-            background: #252538;
-            margin: 0 auto 20px auto;
-            border-radius: 12px;
-            border: 2px solid #0088cc;
-            overflow: hidden; /* Прячем то, что не влезает */
-        }
-
-        /* Красная линия по центру — указатель выигрыша */
-        .pointer {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 4px;
-            height: 100%;
-            background: #ff3333;
-            z-index: 10;
-            box-shadow: 0 0 10px #ff3333;
-        }
-
-        .tape {
-            display: flex;
-            align-items: center;
-            position: absolute;
-            left: 0;
-            height: 100%;
-            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); /* Плавная остановка */
-        }
-
-        .gift-card {
-            width: 80px;
-            height: 80px;
-            background: #3b3b54;
-            margin: 0 5px;
-            border-radius: 8px;
+        body {
+            background-color: #12131a;
+            color: #ffffff;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            font-size: 12px;
-            font-weight: bold;
-            box-sizing: border-box;
+            min-height: 100vh;
+            padding: 20px;
         }
 
-        /* Редкости подарков */
-        .common { border: 2px solid #8c8c8c; }
-        .rare { border: 2px solid #0055ff; color: #0088ff; }
-        .legendary { border: 2px solid #ffaa00; color: #ffaa00; box-shadow: inset 0 0 10px rgba(255,170,0,0.3); }
+        /* Шапка приложения */
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            margin-top: 10px;
+        }
 
-        .btn {
-            background: #0088cc;
-            color: white;
-            border: none;
-            padding: 12px 30px;
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: #248bf2;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            text-shadow: 0 0 10px rgba(36, 139, 242, 0.3);
+        }
+
+        /* Виджет баланса */
+        .balance-container {
+            background: linear-gradient(135deg, #1c1e27, #161720);
+            border: 1px solid #232736;
+            border-radius: 14px;
+            padding: 10px 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .balance-text {
             font-size: 16px;
-            font-weight: bold;
+            color: #9299a9;
+            font-weight: 500;
+        }
+
+        .balance-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .coin-icon {
+            color: #ffca28;
+            font-size: 16px;
+        }
+
+        /* Рулетка */
+        .roulette-section {
+            width: 100%;
+            max-width: 400px;
+            background-color: #161720;
+            border: 1px solid #222533;
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .roulette-carousel {
+            display: flex;
+            gap: 10px;
+            overflow: hidden;
+            background-color: #0f1015;
+            border: 2px solid #248bf2;
+            border-radius: 12px;
+            padding: 12px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        /* Линия указателя по центру */
+        .roulette-carousel::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: #ff334b;
+            box-shadow: 0 0 8px #ff334b;
+            z-index: 10;
+            transform: translateX(-50%);
+        }
+
+        .item {
+            min-width: 80px;
+            height: 80px;
+            background-color: #1c1e27;
             border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid #2d3245;
+        }
+
+        .item.common { border-color: #546e7a; color: #b0bec5; }
+        .item.rare { border-color: #1e88e5; color: #64b5f6; }
+        .item.legendary { border-color: #ffb300; color: #ffd54f; }
+
+        .item-icon {
+            font-size: 20px;
+        }
+
+        /* Кнопка крутить */
+        .btn-spin {
+            width: 100%;
+            background: linear-gradient(135deg, #248bf2, #1a73e8);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 136, 204, 0.4);
+            box-shadow: 0 4px 15px rgba(36, 139, 242, 0.4);
+            transition: transform 0.1s;
         }
 
-        .btn:active {
-            transform: scale(0.95);
+        .btn-spin:active {
+            transform: scale(0.98);
         }
 
-        /* Раздел Рынка */
-        .market-section {
-            margin-top: 30px;
-            border-top: 1px solid #3b3b54;
-            padding-top: 20px;
+        /* P2P Рынок */
+        .p2p-section {
+            width: 100%;
+            max-width: 400px;
         }
 
-        .market-grid {
+        .p2p-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #248bf2;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .p2p-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
         }
 
-        .market-item {
-            background: #252538;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #3b3b54;
+        .market-card {
+            background-color: #161720;
+            border: 1px solid #222533;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 8px;
         }
 
-        .price {
-            color: #00ff66;
-            font-weight: bold;
+        .card-title {
             font-size: 14px;
-            margin: 5px 0;
+            font-weight: 600;
+        }
+
+        .card-price {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffca28;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-buy {
+            width: 100%;
+            background-color: #212330;
+            border: 1px solid #248bf2;
+            color: #248bf2;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-buy:active {
+            background-color: rgba(36, 139, 242, 0.1);
         }
     </style>
 </head>
 <body>
 
-    <h2>GIFT ROULETTE</h2>
-    <div class="balance">Баланс: <span id="balance-val">1000</span> 🪙</div>
-
-    <!-- РУЛЕТКА -->
-    <div class="roulette-container">
-        <div class="pointer"></div>
-        <div class="tape" id="roulette-tape">
-            <!-- Сюда JavaScript будет подставлять предметы -->
+    <div class="header">
+        <div class="logo">Gift Roulette</div>
+        <div class="balance-container">
+            <span class="balance-text">Баланс:</span>
+            <span class="balance-value">0</span>
+            <span class="coin-icon">🪙</span>
         </div>
     </div>
 
-    <button class="btn" onclick="spinRoulette()">Крутить (100 🪙)</button>
-
-    <!-- МАРКЕТПЛЕЙС -->
-    <div class="market-section">
-        <h2>P2P РЫНОК</h2>
-        <div class="market-grid">
-            <div class="market-item">
-                <div style="font-size: 24px;">🎁</div>
-                <div>Common NFT</div>
-                <div class="price">50 🪙</div>
-                <button class="btn" style="padding: 5px 10px; font-size: 12px;">Купить</button>
+    <div class="roulette-section">
+        <div class="roulette-carousel">
+            <div class="item common">
+                <span class="item-icon">🎁</span>
+                <span>Common</span>
             </div>
-            <div class="market-item">
-                <div style="font-size: 24px;">💎</div>
-                <div style="color: #ffaa00;">Legendary NFT</div>
-                <div class="price">750 🪙</div>
-                <button class="btn" style="padding: 5px 10px; font-size: 12px;">Купить</button>
+            <div class="item legendary">
+                <span class="item-icon">💎</span>
+                <span>Legendary</span>
+            </div>
+            <div class="item rare">
+                <span class="item-icon">⚡</span>
+                <span>Rare</span>
+            </div>
+            <div class="item legendary">
+                <span class="item-icon">💎</span>
+                <span>Legendary</span>
+            </div>
+        </div>
+        <button class="btn-spin" onclick="spinClick()">Крутить (100 🪙)</button>
+    </div>
+
+    <div class="p2p-section">
+        <div class="p2p-title">P2P Рынок</div>
+        <div class="p2p-grid">
+            <div class="market-card">
+                <span style="font-size: 24px;">🎁</span>
+                <span class="card-title" style="color: #b0bec5;">Common NFT</span>
+                <span class="card-price">50 🪙</span>
+                <button class="btn-buy" onclick="buyClick('Common')">Купить</button>
+            </div>
+            <div class="market-card">
+                <span style="font-size: 24px;">💎</span>
+                <span class="card-title" style="color: #ffd54f;">Legendary NFT</span>
+                <span class="card-price">750 🪙</span>
+                <button class="btn-buy" onclick="buyClick('Legendary')">Купить</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Сообщаем Телеграму, что приложение готово к работе
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand(); // Разворачиваем на весь экран телефона
-
-        // Базовый массив предметов для ленты рулетки
-        const items = [
-            { name: 'Common', icon: '🎁', class: 'common' },
-            { name: 'Rare', icon: '⚡', class: 'rare' },
-            { name: 'Legendary', icon: '💎', class: 'legendary' }
-        ];
-
-        const tape = document.getElementById('roulette-tape');
-
-        // Функция генерации предметов в ленте перед прокруткой
-        function generateTape() {
-            tape.innerHTML = '';
-            // Создаем длинную ленту из 40 случайных предметов
-            for (let i = 0; i < 40; i++) {
-                let randomItem = items[Math.floor(Math.random() * items.length)];
-                if (i === 35) { 
-                    // Пусть 35-й предмет всегда будет "выигрышным" для теста визуализации
-                    randomItem = items[1]; 
-                }
-                const card = document.createElement('div');
-                card.className = `gift-card ${randomItem.class}`;
-                card.innerHTML = `<span style="font-size:24px;">${randomItem.icon}</span>${randomItem.name}`;
-                tape.appendChild(card);
-            }
+        function spinClick() {
+            alert("Недостаточно монет для прокрута рулетки!");
         }
 
-        // Запускаем генерацию при старте страницы
-        generateTape();
-
-        function spinRoulette() {
-            generateTape(); // Сбрасываем ленту
-            tape.style.transition = 'none';
-            tape.style.transform = 'translateX(0px)';
-            
-            // Небольшая задержка, чтобы анимация сработала заново
-            setTimeout(() => {
-                tape.style.transition = 'transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)';
-                // Сдвигаем ленту так, чтобы 35-й элемент остановился ровно под стрелкой
-                // Ширина карты 80px + 10px отступы = 90px. 
-                // Высчитываем смещение для красивого эффекта:
-                tape.style.transform = 'translateX(-2950px)';
-            }, 50);
+        function buyClick(item) {
+            alert("Недостаточно монет для покупки " + item + " NFT!");
         }
     </script>
 </body>
